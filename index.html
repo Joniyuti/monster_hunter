@@ -1,0 +1,2751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>モンスターハンターワイルズ 2Dリメイク</title>
+<style>
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --bg-outer: #090d16;
+    --panel-bg: rgba(16, 23, 38, 0.94);
+    --panel-border: rgba(217, 167, 96, 0.45);
+    --sand-gold: #e6b86a;
+    --amber-bright: #fbbf24;
+    --wound-crimson: #ff3b5c;
+    --focus-cyan: #38bdf8;
+    --seikret-teal: #2dd4bf;
+    --hp-green: #22c55e;
+    --text-main: #f8fafc;
+    --text-dim: #cbd5e1;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100dvh;
+    background: radial-gradient(circle at 50% 20%, #1c283d 0%, #0d1320 62%, #060911 100%);
+    color: var(--text-main);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  /* PC Side Reference Cards (Shown on desktop >= 960px, hidden on mobile) */
+  .pc-side-card {
+    display: none;
+    width: 256px;
+    max-height: calc(100dvh - 32px);
+    background: rgba(15, 22, 36, 0.94);
+    border: 1.5px solid rgba(230, 184, 106, 0.45);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.78);
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.48;
+  }
+
+  @media (min-width: 960px) {
+    .pc-side-card {
+      display: flex;
+    }
+  }
+
+  .pc-side-title {
+    font-size: 13.5px;
+    font-weight: 900;
+    color: var(--sand-gold);
+    border-bottom: 1px solid rgba(230, 184, 106, 0.35);
+    padding-bottom: 5px;
+  }
+
+  .key-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.2);
+  }
+
+  .kbadge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #1e293b;
+    border: 1px solid #38bdf8;
+    color: #fef08a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  /* Strict 9:16 Portrait Container with Mobile Browser Safe-Area Isolation */
+  #game-frame {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    width: min(100vw, calc((100dvh - var(--safe-top) - var(--safe-bottom)) * 9 / 16));
+    height: min(calc(100dvh - var(--safe-top) - var(--safe-bottom)), calc(100vw * 16 / 9));
+    max-height: 100dvh;
+    margin-top: var(--safe-top);
+    margin-bottom: var(--safe-bottom);
+    background: linear-gradient(180deg, #162133 0%, #0b111c 100%);
+    border: 2px solid rgba(230, 184, 106, 0.65);
+    box-shadow: 0 0 60px rgba(230, 184, 106, 0.16), 0 0 70px rgba(0, 0, 0, 0.96);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    container-type: inline-size;
+  }
+
+  /* Top Hunt Status & Monster HP Bar */
+  #top-hud {
+    flex: 0 0 auto;
+    background: linear-gradient(180deg, rgba(24, 34, 54, 0.98) 0%, rgba(12, 18, 30, 0.96) 100%);
+    border-bottom: 1.5px solid rgba(230, 184, 106, 0.5);
+    padding: clamp(5px, 1.2cqw, 8px) clamp(8px, 2cqw, 12px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 25;
+  }
+
+  .hud-top-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  #hud-quest-title {
+    font-size: clamp(10px, 2.5cqw, 13.5px);
+    font-weight: 900;
+    color: var(--sand-gold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #hud-focus-pill {
+    font-size: clamp(9px, 2.2cqw, 12px);
+    font-weight: 900;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.16);
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    color: #bae6fd;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  #hud-focus-pill.active-focus {
+    background: rgba(255, 59, 92, 0.28);
+    border-color: var(--wound-crimson);
+    color: #fecdd3;
+  }
+
+  .monster-hp-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: clamp(9.5px, 2.35cqw, 12.5px);
+    font-weight: 900;
+    color: #fecaca;
+  }
+
+  .hp-bar-track {
+    width: 100%;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  #monster-hp-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #dc2626, #f97316, #facc15);
+    transition: width 0.14s ease-out;
+  }
+
+  .hunter-sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    font-size: clamp(9px, 2.15cqw, 11.8px);
+    font-weight: 800;
+    color: #e2e8f0;
+  }
+
+  .sharp-badge {
+    padding: 0 6px;
+    border-radius: 4px;
+    font-size: clamp(8.5px, 2cqw, 11px);
+    font-weight: 900;
+  }
+
+  /* Alma / Gemma / Olivia Radio Strip */
+  #radio-strip {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: clamp(54px, 14.5cqw, 76px) 1fr;
+    align-items: center;
+    gap: clamp(6px, 1.4cqw, 9px);
+    padding: clamp(4px, 1cqw, 6px) clamp(8px, 2cqw, 12px);
+    background: rgba(18, 27, 45, 0.92);
+    border-bottom: 1px solid rgba(230, 184, 106, 0.3);
+    z-index: 20;
+  }
+
+  #radio-portrait-canvas {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 9px;
+    border: 1.5px solid var(--sand-gold);
+    background: #0d1526;
+    display: block;
+  }
+
+  .radio-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  #radio-speaker {
+    font-size: clamp(10.5px, 2.65cqw, 13.5px);
+    font-weight: 900;
+    color: var(--sand-gold);
+  }
+
+  #radio-text {
+    font-size: clamp(10px, 2.5cqw, 13px);
+    line-height: 1.35;
+    color: #f8fafc;
+    font-weight: 700;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Main 2D Hunting Arena */
+  #hunt-arena-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  #hunt-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+
+  /* Bottom Virtual Controls & Smithy/Save Dock (Safe from Mobile Browser Chrome) */
+  #bottom-dock {
+    flex: 0 0 auto;
+    background: linear-gradient(180deg, #131c2e 0%, #080c14 100%);
+    border-top: 1.5px solid rgba(230, 184, 106, 0.45);
+    padding: clamp(5px, 1.25cqw, 8px) clamp(6px, 1.6cqw, 10px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(5px, 1.15cqw, 7px);
+    z-index: 25;
+  }
+
+  .pad-grid-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.25fr;
+    gap: clamp(6px, 1.5cqw, 9px);
+    align-items: center;
+  }
+
+  .dpad-box {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, clamp(30px, 7.5cqw, 39px));
+    gap: 4px;
+  }
+
+  .pad-btn {
+    background: linear-gradient(180deg, #1e2d47 0%, #101827 100%);
+    border: 1.5px solid rgba(148, 163, 184, 0.55);
+    border-radius: 8px;
+    color: #f8fafc;
+    font-size: clamp(11px, 2.75cqw, 14.5px);
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .pad-btn:active, .pad-btn.active-press {
+    border-color: var(--amber-bright);
+    background: linear-gradient(180deg, #33496e 0%, #19263d 100%);
+    transform: scale(0.96);
+  }
+
+  .combat-pad-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(2, clamp(30px, 7.5cqw, 39px));
+    gap: 4px;
+  }
+
+  .btn-attack {
+    background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
+    border-color: var(--amber-bright);
+    color: #fef9c3;
+    font-size: clamp(10px, 2.5cqw, 13px);
+  }
+
+  .btn-focus-strike {
+    background: linear-gradient(180deg, #be123c 0%, #881337 100%);
+    border-color: #fda4af;
+    color: #ffe4e6;
+    font-size: clamp(10px, 2.5cqw, 13px);
+  }
+
+  .btn-dodge {
+    background: linear-gradient(180deg, #0f766e 0%, #134e4a 100%);
+    border-color: var(--seikret-teal);
+    color: #ccfbf1;
+    font-size: clamp(10px, 2.5cqw, 13px);
+  }
+
+  .btn-aid {
+    background: linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%);
+    border-color: var(--focus-cyan);
+    color: #e0f2fe;
+    font-size: clamp(10px, 2.5cqw, 13px);
+  }
+
+  .sub-dock-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+
+  .sub-btn {
+    background: #141e33;
+    border: 1px solid rgba(230, 184, 106, 0.35);
+    border-radius: 6px;
+    padding: clamp(4px, 0.95cqw, 6px) 2px;
+    color: #f1f5f9;
+    font-size: clamp(8.8px, 2.15cqw, 11.2px);
+    font-weight: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+    cursor: pointer;
+  }
+
+  .sub-key {
+    font-size: clamp(7.5px, 1.75cqw, 9.2px);
+    color: #7dd3fc;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  /* Overlay Screens (Title, Cutscene, Smithy, Save/Load, Guide, Menu) */
+  .overlay-screen {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 18%, rgba(217, 167, 96, 0.2) 0%, rgba(12, 18, 30, 0.98) 62%, #060911 100%);
+    z-index: 45;
+    display: none;
+    flex-direction: column;
+    padding: clamp(10px, 2.5cqw, 16px);
+    gap: clamp(8px, 1.9cqw, 12px);
+    overflow-y: auto;
+  }
+
+  .overlay-screen.active {
+    display: flex;
+  }
+
+  #title-screen {
+    z-index: 55;
+    justify-content: space-between;
+    text-align: center;
+  }
+
+  .wilds-crest {
+    height: 4px;
+    width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #d97706 0%, #fbbf24 50%, #38bdf8 100%);
+  }
+
+  .title-logo {
+    font-size: clamp(18px, 4.7cqw, 26px);
+    font-weight: 900;
+    line-height: 1.2;
+    margin: 4px 0;
+    background: linear-gradient(180deg, #ffffff 0%, #fde68a 52%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .card-panel {
+    background: rgba(18, 27, 46, 0.93);
+    border: 1.5px solid rgba(230, 184, 106, 0.42);
+    border-radius: 10px;
+    padding: clamp(8px, 2cqw, 12px);
+    text-align: left;
+    font-size: clamp(10.5px, 2.6cqw, 13.5px);
+    line-height: 1.48;
+  }
+
+  .action-btn {
+    width: 100%;
+    padding: clamp(9px, 2.2cqw, 12px) 10px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(230, 184, 106, 0.55);
+    background: linear-gradient(180deg, #1e2d47 0%, #0f172a 100%);
+    color: #ffffff;
+    font-size: clamp(11.5px, 2.9cqw, 15px);
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .action-btn:hover, .action-btn:active {
+    border-color: var(--amber-bright);
+  }
+
+  .action-btn.wilds-primary {
+    background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
+    border-color: #fde68a;
+    color: #fef9c3;
+  }
+
+  .action-btn.focus-btn {
+    background: linear-gradient(180deg, #0369a1 0%, #0c4a6e 100%);
+    border-color: #7dd3fc;
+  }
+
+  .action-btn.danger-btn {
+    background: linear-gradient(180deg, #be123c 0%, #4c0519 100%);
+    border-color: #fda4af;
+    color: #ffe4e6;
+  }
+
+  .screen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1.5px solid rgba(230, 184, 106, 0.42);
+    padding-bottom: 6px;
+  }
+
+  .screen-title {
+    font-size: clamp(13px, 3.2cqw, 17px);
+    font-weight: 900;
+    color: var(--sand-gold);
+  }
+
+  .mini-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(230, 184, 106, 0.55);
+    background: #1a263d;
+    color: #f8fafc;
+    font-size: clamp(10px, 2.5cqw, 13px);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .mini-btn.gold {
+    background: #92400e;
+    border-color: #fbbf24;
+    color: #fef08a;
+  }
+
+  .mini-btn.danger {
+    background: #881337;
+    border-color: #fda4af;
+  }
+
+  #toast-banner {
+    position: absolute;
+    top: 52px;
+    left: 12px;
+    right: 12px;
+    background: rgba(14, 22, 38, 0.97);
+    border: 1.5px solid var(--amber-bright);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: clamp(10.5px, 2.65cqw, 13.5px);
+    font-weight: 900;
+    color: #fef08a;
+    text-align: center;
+    z-index: 75;
+    display: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
+  }
+
+  #toast-banner.show {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+  <!-- PC Left Companion Controls & Wilds Mechanics Guide -->
+  <aside class="pc-side-card" aria-label="PC操作＆ワイルズシステム解説">
+    <div class="pc-side-title">⌨ PCキーボード操作ガイド</div>
+    <div class="key-row"><span>移動 / 集中照準方向</span><span class="kbadge">WASD / 矢印</span></div>
+    <div class="key-row"><span>武器攻撃（大剣/太刀/弓）</span><span class="kbadge">Z / J</span></div>
+    <div class="key-row"><span>集中弱点攻撃（傷口破壊）</span><span class="kbadge">X / K</span></div>
+    <div class="key-row"><span>回避 / セクレト機動</span><span class="kbadge">C / Space</span></div>
+  <div class="key-row"><span>2武器持ち替え（武器鞄）</span><span class="kbadge">Q / Tab</span></div>
+  <div class="key-row"><span>回復薬＆砥石＆セクレト支援</span><span class="kbadge">R</span></div>
+  <div class="key-row"><span>加工屋（装備強化）</span><span class="kbadge">G</span></div>
+  <div class="key-row"><span>セーブ / ロード</span><span class="kbadge">K / O</span></div>
+  <div class="key-row"><span>サウンド / メニュー</span><span class="kbadge">M / Esc</span></div>
+  <div class="pc-side-title" style="margin-top:4px;">🎯 集中モード＆傷口＆環境ギミック</div>
+  <div style="font-size:11px;color:#bae6fd;">
+    攻撃を当て続けるとモンスターに<b>赤い「傷口」</b>が開きます！ <b>集中弱点攻撃（X/K）</b>で傷口破壊＆大怯み！ フィールド上の<b>落石岩</b>や<b>環境生物</b>も活用しよう！
+  </div>
+</aside>
+
+<!-- Main 9:16 Portrait Frame -->
+<main id="game-frame">
+    <div id="toast-banner" role="status" aria-live="polite"></div>
+
+    <!-- Top Monster HP & Hunter Status HUD -->
+    <header id="top-hud">
+      <div class="hud-top-line">
+        <span id="hud-quest-title">QUEST 1：纏蛙チャタカブラ狩猟</span>
+        <button id="hud-focus-pill" type="button">🎯 集中モード [F]</button>
+      </div>
+      <div class="monster-hp-row">
+        <span id="hud-monster-name">チャタカブラ</span>
+        <span id="hud-monster-hp-txt">HP 1200 / 1200</span>
+      </div>
+      <div class="hp-bar-track">
+        <div id="monster-hp-fill"></div>
+      </div>
+      <div class="hunter-sub-row">
+        <span id="hud-hunter-hp">♥ 体力 150/150</span>
+        <span id="hud-weapon-tag">⚔ 大剣</span>
+        <span id="hud-sharp-tag" class="sharp-badge" style="background:#16a34a;color:#fff;">斬れ味 100%</span>
+        <span id="hud-potions">🧪 薬: 4</span>
+      </div>
+    </header>
+
+    <!-- Alma / Gemma / Olivia Comms Strip -->
+    <section id="radio-strip">
+      <canvas id="radio-portrait-canvas"></canvas>
+      <div class="radio-col">
+        <div id="radio-speaker">アルマ（編纂者）</div>
+        <div id="radio-text">「禁足地の調査クエスト開始よ！ 傷口を狙って集中弱点攻撃を叩き込みましょう！」</div>
+      </div>
+    </section>
+
+    <!-- Main 2D Hunting Arena -->
+    <section id="hunt-arena-wrap">
+      <canvas id="hunt-canvas"></canvas>
+    </section>
+
+    <!-- Bottom Virtual Controls & Function Bar (Safe above Mobile Browser Chrome) -->
+    <footer id="bottom-dock">
+      <div class="pad-grid-row">
+        <div class="dpad-box" aria-label="移動方向パッド">
+          <div></div>
+          <button type="button" class="pad-btn" data-dir="up">▲</button>
+          <div></div>
+          <button type="button" class="pad-btn" data-dir="left">◀</button>
+          <button type="button" class="pad-btn" data-dir="down">▼</button>
+          <button type="button" class="pad-btn" data-dir="right">▶</button>
+        </div>
+
+        <div class="combat-pad-box">
+          <button id="btn-atk" type="button" class="pad-btn btn-attack">⚔ 攻撃 [Z]</button>
+          <button id="btn-focus-atk" type="button" class="pad-btn btn-focus-strike">💥 集中撃 [X]</button>
+          <button id="btn-dodge" type="button" class="pad-btn btn-dodge">🦅 回避 [C]</button>
+          <button id="btn-aid" type="button" class="pad-btn btn-aid">🧪 薬/砥 [R]</button>
+        </div>
+      </div>
+
+      <div class="sub-dock-row">
+        <button id="btn-swap-wpn" type="button" class="sub-btn"><span>🔄 武器切替</span><span class="sub-key">[Q]</span></button>
+        <button id="btn-smithy" type="button" class="sub-btn"><span>🔨 加工屋</span><span class="sub-key">[G]</span></button>
+        <button id="btn-save" type="button" class="sub-btn"><span>💾 セーブ</span><span class="sub-key">[K]</span></button>
+        <button id="btn-load" type="button" class="sub-btn"><span>📂 ロード</span><span class="sub-key">[O]</span></button>
+        <button id="btn-menu" type="button" class="sub-btn"><span>☰ メニュー</span><span class="sub-key">[Esc]</span></button>
+      </div>
+    </footer>
+
+    <!-- 1. TITLE SCREEN -->
+    <div id="title-screen" class="overlay-screen active">
+      <div>
+        <div class="wilds-crest"></div>
+        <div style="margin-top:6px;font-size:clamp(9.5px,2.3cqw,12px);font-weight:900;color:#7dd3fc;letter-spacing:1px;">
+          FORBIDDEN LANDS 2D HUNTING ACTION RPG
+        </div>
+        <h1 class="title-logo">モンスターハンターワイルズ<br>2Dリメイク</h1>
+      </div>
+
+      <canvas id="title-preview-canvas" style="width:100%;height:152px;border-radius:10px;border:1.5px solid var(--sand-gold);"></canvas>
+
+      <div class="card-panel">
+    <div style="color:var(--amber-bright);font-weight:900;margin-bottom:3px;">◆ 禁足地・全4大型モンスター狩猟キャンペーン</div>
+    ・<b>チャタカブラ → レ・ダウ → ウズ・トゥナ → 鎖刃竜アルシュベルド</b>を連続狩猟！<br>
+    ・<b>専用シルエット＆生態ギミック：</b>各竜の固有外見・攻撃予備動作、<b>落石岩</b>や<b>回復ミツムシ・雷光の実</b>を再現！<br>
+    ・<b>集中モード＆傷口破壊：</b>赤い傷口に<b>集中弱点攻撃 [X/K]</b>で特大ダメージ＆素材獲得！
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:7px;">
+        <button id="btn-start-campaign" type="button" class="action-btn wilds-primary">⚔ 禁足地調査を開始する <span class="kbadge">Enter</span></button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button id="btn-title-load" type="button" class="action-btn focus-btn">📂 続きから再開 <span class="kbadge">O</span></button>
+          <button id="btn-title-guide" type="button" class="action-btn">📖 登場キャラ＆図鑑</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button id="btn-title-sound" type="button" class="action-btn" style="padding:7px;font-size:11.5px;">🔊 サウンド: ON <span class="kbadge">M</span></button>
+          <button id="btn-title-del" type="button" class="action-btn danger-btn" style="padding:7px;font-size:11.5px;">🗑 セーブデータ削除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. PROLOGUE / STAGE BRIEFING / GRAND ENDING SCREEN -->
+    <div id="story-screen" class="overlay-screen">
+      <div class="screen-header">
+        <span id="story-header-title" class="screen-title">📡 禁足地調査ブリーフィング</span>
+        <button id="btn-story-skip" type="button" class="mini-btn gold">狩猟開始 ▶</button>
+      </div>
+
+      <canvas id="story-art-canvas" style="width:100%;height:178px;border-radius:10px;border:1.5px solid var(--sand-gold);"></canvas>
+
+      <div class="card-panel" style="flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:6px;">
+        <div id="story-speaker" style="color:var(--amber-bright);font-weight:900;font-size:13px;">アルマ（編纂者）</div>
+        <div id="story-body" style="font-size:12.5px;line-height:1.62;color:#ffffff;"></div>
+      </div>
+
+      <button id="btn-story-next" type="button" class="action-btn wilds-primary">次へ進む <span class="kbadge">Enter</span></button>
+    </div>
+
+    <!-- 3. GEMMA'S SMITHY (加工屋：素材で武器・防具・回復強化) -->
+    <div id="smithy-screen" class="overlay-screen">
+      <div class="screen-header">
+        <span class="screen-title">🔨 ジェマの加工屋（装備＆素材強化）</span>
+        <button id="btn-close-smithy" type="button" class="mini-btn">✕ 戻る [Esc]</button>
+      </div>
+      <div id="materials-summary" class="card-panel" style="font-size:11.5px;color:#fde68a;"></div>
+      <div id="smithy-upgrades-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+    </div>
+
+    <!-- 4. SAVE / LOAD / DELETE SCREEN -->
+    <div id="save-screen" class="overlay-screen">
+      <div class="screen-header">
+        <span id="save-screen-title" class="screen-title">💾 セーブ・データ管理</span>
+        <button id="btn-close-save" type="button" class="mini-btn">✕ 閉じる [Esc]</button>
+      </div>
+      <div id="save-slots-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,0.14);">
+        <button id="btn-purge-all-saves" type="button" class="action-btn danger-btn">🗑 すべてのセーブデータを削除する</button>
+      </div>
+    </div>
+
+    <!-- 5. CHARACTER & MONSTER GUIDE -->
+    <div id="guide-screen" class="overlay-screen">
+      <div class="screen-header">
+        <span class="screen-title">📖 ワイルズ登場人物＆大型モンスター</span>
+        <button id="btn-close-guide" type="button" class="mini-btn">✕ 閉じる [Esc]</button>
+      </div>
+      <div id="guide-list" style="display:flex;flex-direction:column;gap:7px;"></div>
+    </div>
+
+    <!-- 6. SYSTEM MENU -->
+    <div id="menu-screen" class="overlay-screen">
+      <div class="screen-header">
+        <span class="screen-title">☰ クエストメニュー</span>
+        <button id="btn-close-menu" type="button" class="mini-btn">✕ 戻る [Esc]</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+        <button id="btn-menu-sound" type="button" class="action-btn wilds-primary">🔊 サウンド: ON [M]</button>
+        <button id="btn-menu-retry" type="button" class="action-btn">🔄 このクエストをやり直す</button>
+      </div>
+      <div class="card-panel">
+        <div style="color:var(--amber-bright);font-weight:900;margin-bottom:4px;">◆ 禁足地クエスト選択（討伐済みまで）</div>
+        <div id="quest-select-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+      <button id="btn-menu-title" type="button" class="action-btn danger-btn">🏠 タイトル画面へ戻る</button>
+  <div class="pc-side-title">🐉 禁足地4大ターゲット＆生態</div>
+  <div style="font-size:11.5px;color:#e2e8f0;display:flex;flex-direction:column;gap:4px;">
+    <div><b style="color:#fbbf24;">1. チャタカブラ：</b>ずんぐり両生種・岩腕叩きつけ</div>
+    <div><b style="color:#fbbf24;">2. レ・ダウ：</b>長角翼の煌雷竜・帯電レールガン</div>
+    <div><b style="color:#fbbf24;">3. ウズ・トゥナ：</b>水ヴェール海竜・重圧ボディプレス</div>
+    <div><b style="color:#fbbf24;">4. アルシュベルド：</b>鎖刃竜・鞭状鎖刃＆龍属性解放</div>
+  </div>
+  <div class="pc-side-title" style="margin-top:4px;">🌿 フィールド環境＆ギミック</div>
+  <div style="font-size:11px;color:#86efac;display:flex;flex-direction:column;gap:2px;">
+    <div>・<b>🪨 落石ギミック：</b>攻撃で落として大ダメージ＆大ダウン！</div>
+    <div>・<b>🐞 回復ミツムシ：</b>触れて体力＆斬れ味を即時回復！</div>
+    <div>・<b>⚡ 雷光の実：</b>拾って次の攻撃に雷撃追加ダメージ！</div>
+  </div>
+  <div class="pc-side-title" style="margin-top:4px;">🎒 所持ハンター素材</div>
+  <div id="pc-materials-box" style="font-size:11px;color:#fde68a;display:flex;flex-direction:column;gap:2px;"></div>
+  <div id="pc-hunt-status" style="margin-top:auto;padding-top:6px;border-top:1px solid rgba(230,184,106,0.28);font-size:11px;color:#7dd3fc;">
+    集中モード：OFF
+  </div>
+</aside>
+
+<script>
+(() => {
+'use strict';
+
+const SAVE_KEY = 'mhwilds_2d_remake_saves_v1';
+const MAX_SLOTS = 3;
+
+  /* =========================================================
+     1. WILDS CHARACTERS, WEAPONS, MONSTERS & QUESTS
+     ========================================================= */
+  const CHARACTERS = {
+    alma: {
+      id: 'alma',
+      name: 'アルマ（編纂者）',
+      role: '禁足地調査隊の編纂者。生態調査とクエスト進行をサポートする。',
+      hair: '#5c3a21',
+      coat: '#e2e8f0',
+      accent: '#b45309',
+      eye: '#15803d',
+      quote: '「ギルドの許可のもと、このモンスターの狩猟を要請します！ 傷口を狙いましょう！」'
+    },
+    gemma: {
+      id: 'gemma',
+      name: 'ジェマ（加工屋）',
+      role: 'モンスター素材から武器・防具を鍛え上げる熟練の加工屋。',
+      hair: '#27272a',
+      coat: '#334155',
+      accent: '#f59e0b',
+      eye: '#b45309',
+      quote: '「いい素材が集まったね！ 加工屋［G］で武器や防具をガンガン鍛えちゃおう！」'
+    },
+    olivia: {
+      id: 'olivia',
+      name: 'オリヴィア（星の隊）',
+      role: '禁足地調査隊『星の隊』の実力派ハンター。戦場の様子を見守る。',
+      hair: '#78350f',
+      coat: '#1e3a8a',
+      accent: '#38bdf8',
+      eye: '#1d4ed8',
+      quote: '「油断するなよ！ モンスターの予備動作を見極めて、集中弱点攻撃で一気に押し切るんだ！」'
+    },
+    nata: {
+      id: 'nata',
+      name: 'ナタ（謎の少年）',
+      role: '“白の孤影”アルシュベルドと深い縁を持つ禁足地の少年。',
+      hair: '#3f2e21',
+      coat: '#92400e',
+      accent: '#fbbf24',
+      eye: '#1e293b',
+      quote: '「あの鎖刃の竜……なぜ傷つきながらも戦うんだろう。頼む、どうか止めてくれ……！」'
+    }
+  };
+
+  const WEAPONS = {
+    greatsword: {
+      id: 'greatsword',
+      name: '大剣（ホープブレイド）',
+      short: '⚔ 大剣',
+      powerMult: 1.45,
+      range: 82,
+      cooldownMs: 460,
+      woundMult: 1.55,
+      color: '#fbbf24',
+      desc: '一撃の破壊力と傷口への重撃に優れる重厚な斬撃武器。'
+    },
+    longsword: {
+      id: 'longsword',
+      name: '太刀（ホープ刀）',
+      short: '🗡 太刀',
+      powerMult: 1.12,
+      range: 74,
+      cooldownMs: 250,
+      woundMult: 1.35,
+      color: '#38bdf8',
+      desc: '素早い連撃と広い薙ぎ払いで傷口を作りやすい万能武器。'
+    },
+    bow: {
+      id: 'bow',
+      name: '弓（ホープボウ）',
+      short: '🏹 弓',
+      powerMult: 1.0,
+      range: 195,
+      cooldownMs: 280,
+      woundMult: 1.45,
+      color: '#4ade80',
+      desc: '離れた間合いから貫通矢を放ち、安全に傷口を狙える射撃武器。'
+    }
+  };
+
+  const QUESTS = [
+    {
+      id: 1,
+      title: 'QUEST 1：纏蛙チャタカブラ狩猟',
+      monsterKey: 'chatacabra',
+      arenaTheme: 'sand',
+      matKey: 'chataHide',
+      matName: '纏蛙の皮',
+      introSpeaker: CHARACTERS.alma.name,
+      introText: '「隔ての砂原の周辺で『チャタカブラ』が確認されました！ 前脚に鉱石や岩を纏う力強い両生種です。まずは基本の立ち回りと傷口狙いを試しましょう！」',
+      clearText: 'チャタカブラを討伐！ 纏蛙の皮を獲得した。ジェマの加工屋で装備強化が可能だ！'
+    },
+    {
+      id: 2,
+      title: 'QUEST 2：煌雷竜レ・ダウ討伐',
+      monsterKey: 'reydau',
+      arenaTheme: 'thunder',
+      matKey: 'reyShell',
+      matName: '煌雷竜の甲殻',
+      introSpeaker: CHARACTERS.olivia.name,
+      introText: '「砂嵐の奥から『レ・ダウ』が降りてきたぞ！ 帯電した翼と雷撃は強力だが、放電後の隙に集中弱点攻撃を叩き込めば一気にダウンを奪える！」',
+      clearText: '煌雷竜レ・ダウを討伐！ 煌雷竜の甲殻を獲得した。'
+    },
+    {
+      id: 3,
+      title: 'QUEST 3：波衣竜ウズ・トゥナ討伐',
+      monsterKey: 'uthduna',
+      arenaTheme: 'flood',
+      matKey: 'uthVeil',
+      matName: '波衣竜の皮',
+      introSpeaker: CHARACTERS.alma.name,
+      introText: '「緋の森の豪雨の中、『ウズ・トゥナ』が出現しました！ 巨大な体躯と水ヴェールを纏う海竜種です。セクレトの回避を活かして波状攻撃をかいくぐりましょう！」',
+      clearText: '波衣竜ウズ・トゥナを討伐！ 波衣竜の皮を獲得した。'
+    },
+    {
+      id: 4,
+      title: 'QUEST 4：【FINAL】鎖刃竜アルシュベルド討伐',
+      monsterKey: 'arkveld',
+      arenaTheme: 'ruins',
+      matKey: 'arkScale',
+      matName: '鎖刃竜の鱗',
+      introSpeaker: CHARACTERS.nata.name,
+      introText: '「ついに来たんだ……鎖のように伸びる刃を持つ『アルシュベルド』！ 龍の力を帯びた猛攻を乗り越えて、禁足地の真実とこの戦いに決着をつけてくれ！」',
+      clearText: '鎖刃竜アルシュベルドを討伐！ 禁足地に静寂と希望が戻った！'
+    }
+  ];
+
+  const MONSTER_TEMPLATES = {
+    chatacabra: {
+      name: '纏蛙チャタカブラ',
+      maxHp: 1150,
+      speed: 62,
+      bodyColor: '#7c5838',
+    bellyColor: '#d6b48c',
+    accentColor: '#94a3b8',
+    attackName: '岩腕叩きつけ',
+    weatherLabel: '隔ての砂原・穏やかな日差し'
+  },
+  reydau: {
+    name: '煌雷竜レ・ダウ',
+    maxHp: 1550,
+    speed: 74,
+    bodyColor: '#4a3f28',
+    bellyColor: '#eab308',
+    accentColor: '#38bdf8',
+    attackName: '煌雷レールガン',
+    weatherLabel: '隔ての砂原・砂嵐＆落雷'
+  },
+  uthduna: {
+    name: '波衣竜ウズ・トゥナ',
+    maxHp: 1950,
+    speed: 66,
+    bodyColor: '#9a4e2a',
+    bellyColor: '#fdba74',
+    accentColor: '#22d3ee',
+    attackName: '波衣ボディプレス',
+    weatherLabel: '緋の森・豪雨と水ヴェール'
+  },
+  arkveld: {
+    name: '鎖刃竜アルシュベルド',
+    maxHp: 2500,
+    speed: 82,
+    bodyColor: '#e2e8f0',
+    bellyColor: '#94a3b8',
+    accentColor: '#dc2626',
+    attackName: '鎖刃スラッシュ',
+    weatherLabel: '竜都の跡形・古代龍脈共鳴'
+  }
+};
+
+/* =========================================================
+   2. SYNTHESIZED WEB AUDIO SOUND EFFECTS
+   ========================================================= */
+  class WildsAudio {
+    constructor() {
+      this.ctx = null;
+      this.enabled = true;
+    }
+
+    unlock() {
+      try {
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      } catch (_e) {
+        // Ignore
+      }
+    }
+
+    toggle() {
+      this.enabled = !this.enabled;
+      return this.enabled;
+    }
+
+    play(freq, dur = 0.12, type = 'triangle', vol = 0.045, delay = 0) {
+      if (!this.enabled || !freq) return;
+      this.unlock();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + dur + 0.02);
+      } catch (_e) {
+        // Ignore
+      }
+    }
+
+    slash() {
+      this.play(520, 0.09, 'sawtooth', 0.04, 0);
+      this.play(260, 0.11, 'triangle', 0.045, 0.03);
+    }
+
+    focusStrike() {
+      this.play(880, 0.1, 'sine', 0.05, 0);
+      this.play(170, 0.25, 'sawtooth', 0.06, 0.05);
+      this.play(110, 0.28, 'square', 0.045, 0.09);
+    }
+
+    woundOpen() {
+      this.play(1174.66, 0.14, 'triangle', 0.045, 0);
+      this.play(1567.98, 0.18, 'sine', 0.04, 0.06);
+    }
+
+    dodge() {
+      this.play(340, 0.09, 'sine', 0.035, 0);
+      this.play(580, 0.1, 'triangle', 0.035, 0.04);
+    }
+
+    hurt() {
+      this.play(180, 0.18, 'sawtooth', 0.06, 0);
+      this.play(110, 0.22, 'square', 0.05, 0.07);
+    }
+
+    healOrSharpen() {
+      [587.33, 783.99, 1046.5].forEach((f, idx) => {
+        this.play(f, 0.15, 'sine', 0.045, idx * 0.055);
+      });
+    }
+
+    forge() {
+      this.play(1320, 0.12, 'triangle', 0.05, 0);
+      this.play(990, 0.16, 'square', 0.035, 0.08);
+      this.play(1760, 0.22, 'sine', 0.045, 0.16);
+    }
+
+    victory() {
+      [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, idx) => {
+        this.play(f, 0.26, 'triangle', 0.05, idx * 0.085);
+      });
+    }
+  }
+
+  class WildsSoundEngine extends WildsAudio {}
+
+  const audio = new WildsAudio();
+  const sfx = new WildsSoundEngine();
+
+  /* =========================================================
+     3. GAME STATE, DAMAGE POPUPS & SAVE/DELETE MANAGER
+     ========================================================= */
+  let toastTimer = null;
+  function showToast(msg, ms = 2600) {
+    const el = document.getElementById('toast-banner');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  const state = {
+  questIdx: 0,
+  maxUnlockedQuest: 1,
+  activeSpeakerId: 'alma',
+  focusMode: false,
+  thunderBuffMs: 0,
+  weaponPouch: ['greatsword', 'longsword'],
+  equippedSlot: 0,
+  weaponLv: 1,
+  armorLv: 1,
+  materials: {
+    chataHide: 0,
+    reyShell: 0,
+    uthVeil: 0,
+    arkScale: 0
+  },
+  boulders: [], // { id, x, y, dropped, cooldownMs }
+  floraNodes: [], // { id, x, y, kind: 'vigorwasp'|'thunderbug', respawnMs }
+  hunter: {
+      x: 0.5,
+      y: 0.76,
+      vx: 0,
+      vy: 0,
+      aimX: 0,
+      aimY: -1,
+      hp: 150,
+      maxHp: 150,
+      sharpness: 100,
+      potions: 4,
+      whetstones: 3,
+      atkCooldownMs: 0,
+      focusCooldownMs: 0,
+      dodgeCooldownMs: 0,
+      invulnMs: 0,
+      seikretBoostMs: 0
+    },
+    monster: {
+      key: 'chatacabra',
+      name: '纏蛙チャタカブラ',
+      x: 0.5,
+      y: 0.34,
+      hp: 1150,
+      maxHp: 1150,
+      woundCharge: 0, // fills up to 100 to open a wound
+      wounds: [], // { id, ox, oy, hp, maxHp }
+      staggerMs: 0,
+      windupMs: 0,
+      attackCooldownMs: 1600,
+      chargeDirX: 0,
+      chargeDirY: 1,
+      flashMs: 0
+    },
+    slashes: [], // { x1, y1, x2, y2, color, lifeMs, maxMs }
+    projectiles: [], // { x, y, vx, vy, dmg, isFocus, lifeMs }
+    damageNumbers: [], // Lingering floating damage numbers (~1.4s!)
+    particles: [],
+    shakeMs: 0,
+    shakePower: 0,
+    hitstopMs: 0,
+    paused: true,
+    storyQueue: [],
+    storyIndex: 0,
+    storyMode: 'intro', // 'intro' | 'clear' | 'ending'
+    saveMode: 'save',
+    pendingDelSlot: null,
+    pendingPurgeAll: false
+  };
+
+  let nextWoundId = 1;
+
+  function getActiveWeapon() {
+    const key = state.weaponPouch[state.equippedSlot] || 'greatsword';
+    return WEAPONS[key] || WEAPONS.greatsword;
+  }
+
+  function getAttackPower(isFocus = false) {
+    const wpn = getActiveWeapon();
+    const base = 42 + (state.weaponLv - 1) * 16;
+    const sharpFactor = state.hunter.sharpness > 50 ? 1.0 : (state.hunter.sharpness > 15 ? 0.85 : 0.65);
+    const focusFactor = isFocus ? wpn.woundMult * 1.45 : 1.0;
+    return Math.round(base * wpn.powerMult * sharpFactor * focusFactor);
+  }
+
+  function addDamageNumber(px, py, amount, label = '', isCrit = false, color = '#fef08a') {
+    state.damageNumbers.push({
+      x: px + (Math.random() - 0.5) * 20,
+      y: py - 10,
+      vy: -26,
+      amount,
+      label,
+      isCrit,
+      color,
+      ageMs: 0,
+      durationMs: 1450 // Linger clearly for ~1.45 seconds so damage is easy to read
+    });
+  }
+
+  function spawnHitSparks(px, py, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 45 + Math.random() * 145;
+      state.particles.push({
+        x: px,
+        y: py,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        lifeMs: 360 + Math.random() * 180,
+        maxMs: 540,
+        color,
+        r: 2.5 + Math.random() * 2.5
+      });
+    }
+  }
+
+  function initQuestEncounter(qIdx, keepProgression = false) {
+    state.questIdx = Math.max(0, Math.min(QUESTS.length - 1, qIdx));
+    const q = QUESTS[state.questIdx];
+    const tmpl = MONSTER_TEMPLATES[q.monsterKey] || MONSTER_TEMPLATES.chatacabra;
+
+    state.hunter.x = 0.5;
+    state.hunter.y = 0.77;
+    state.hunter.aimX = 0;
+    state.hunter.aimY = -1;
+    state.hunter.invulnMs = 900;
+    state.hunter.seikretBoostMs = 0;
+    state.hunter.sharpness = 100;
+
+    if (!keepProgression) {
+      state.hunter.maxHp = 150 + (state.armorLv - 1) * 25;
+      state.hunter.hp = state.hunter.maxHp;
+      state.hunter.potions = 4;
+      state.hunter.whetstones = 3;
+    } else {
+      state.hunter.maxHp = 150 + (state.armorLv - 1) * 25;
+      state.hunter.hp = Math.min(state.hunter.maxHp, state.hunter.hp + 45);
+      state.hunter.potions = Math.min(6, state.hunter.potions + 2);
+      state.hunter.whetstones = Math.min(5, state.hunter.whetstones + 1);
+    }
+
+    state.monster = {
+      key: q.monsterKey,
+      name: tmpl.name,
+      x: 0.5,
+      y: 0.34,
+      hp: tmpl.maxHp,
+      maxHp: tmpl.maxHp,
+      woundCharge: 35,
+      wounds: [{ id: nextWoundId++, ox: 0, oy: -8, hp: 180, maxHp: 180 }],
+      staggerMs: 0,
+      windupMs: 0,
+      attackCooldownMs: 1500,
+      chargeDirX: 0,
+      chargeDirY: 1,
+      flashMs: 0
+    };
+
+    state.slashes = [];
+  state.projectiles = [];
+  state.damageNumbers = [];
+  state.particles = [];
+  state.thunderBuffMs = 0;
+
+  // Populate rich Wildlands environment: falling boulders + endemic flora
+  state.boulders = [
+    { id: 1, x: 0.24, y: 0.28, dropped: false, respawnMs: 0 },
+    { id: 2, x: 0.76, y: 0.28, dropped: false, respawnMs: 0 },
+    { id: 3, x: 0.5, y: 0.52, dropped: false, respawnMs: 0 }
+  ];
+
+  state.floraNodes = [
+    { id: 1, x: 0.16, y: 0.64, kind: 'vigorwasp', respawnMs: 0 },
+    { id: 2, x: 0.84, y: 0.64, kind: 'thunderbug', respawnMs: 0 },
+    { id: 3, x: 0.84, y: 0.18, kind: 'vigorwasp', respawnMs: 0 },
+    { id: 4, x: 0.16, y: 0.18, kind: 'thunderbug', respawnMs: 0 }
+  ];
+
+  state.activeSpeakerId = q.questIdx === 3 ? 'nata' : 'alma';
+  updateHud();
+}
+
+/* =========================================================
+   4. COMBAT ACTIONS: WEAPON ATTACK, FOCUS STRIKE, DODGE & AID
+   ========================================================= */
+let arenaRectCache = { x: 0, y: 0, w: 360, h: 480 };
+
+function toArenaPx(nx, ny) {
+  return {
+    x: arenaRectCache.x + nx * arenaRectCache.w,
+    y: arenaRectCache.y + ny * arenaRectCache.h
+  };
+}
+
+function checkBoulderHits(px, py, radius = 44) {
+  state.boulders.forEach(bd => {
+    if (bd.dropped) return;
+    const bPx = toArenaPx(bd.x, bd.y);
+    if (Math.hypot(bPx.x - px, bPx.y - py) <= radius) {
+      bd.dropped = true;
+      bd.respawnMs = 14000;
+      sfx.focusStrike();
+      spawnHitSparks(bPx.x, bPx.y, '#d97706', 20);
+      addDamageNumber(bPx.x, bPx.y - 14, '落石!', '', true, '#fde047');
+      showToast('🪨 落石ギミック作動！ モンスターに直撃させよう！');
+
+      const mPx = toArenaPx(state.monster.x, state.monster.y);
+      if (Math.hypot(mPx.x - bPx.x, mPx.y - bPx.y) <= 95) {
+        const rockDmg = 240 + state.weaponLv * 30;
+        state.monster.staggerMs = Math.max(state.monster.staggerMs, 1500);
+        state.monster.windupMs = 0;
+        applyDamageToMonster(rockDmg, mPx.x, mPx.y, true);
+        showToast(`💥 落石直撃 ${rockDmg}ダメージ＆モンスター大ダウン！`, 2800);
+      }
+    }
+  });
+}
+
+function performWeaponAttack() {
+  if (state.paused || isAnyOverlayOpen()) return;
+  sfx.unlock();
+  if (state.hunter.atkCooldownMs > 0) return;
+
+  const wpn = getActiveWeapon();
+  state.hunter.atkCooldownMs = wpn.cooldownMs;
+  state.hunter.sharpness = Math.max(0, state.hunter.sharpness - (wpn.id === 'bow' ? 1 : 3));
+
+  const hPx = toArenaPx(state.hunter.x, state.hunter.y);
+  const mPx = toArenaPx(state.monster.x, state.monster.y);
+  const dx = mPx.x - hPx.x;
+  const dy = mPx.y - hPx.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const dirX = state.focusMode ? dx / dist : state.hunter.aimX;
+  const dirY = state.focusMode ? dy / dist : state.hunter.aimY;
+
+  if (wpn.id === 'bow') {
+    sfx.slash();
+    state.projectiles.push({
+      x: hPx.x,
+      y: hPx.y,
+      vx: dirX * 420,
+      vy: dirY * 420,
+      dmg: getAttackPower(false),
+      isFocus: false,
+      lifeMs: 650
+    });
+    updateHud();
+    return;
+  }
+
+  // Melee slash arc (Great Sword / Long Sword)
+  sfx.slash();
+  const tipX = hPx.x + dirX * wpn.range;
+  const tipY = hPx.y + dirY * wpn.range;
+  state.slashes.push({
+    x1: hPx.x,
+    y1: hPx.y,
+    x2: tipX,
+    y2: tipY,
+    color: wpn.color,
+    lifeMs: 170,
+    maxMs: 170
+  });
+
+  // Check falling boulder trigger along slash tip
+  checkBoulderHits(tipX, tipY, 46);
+
+  const hitDist = Math.hypot(mPx.x - tipX, mPx.y - tipY);
+  const directDist = Math.hypot(mPx.x - hPx.x, mPx.y - hPx.y);
+  if (hitDist < 62 || directDist < wpn.range + 28) {
+    let dmg = getAttackPower(false);
+    if (state.thunderBuffMs > 0) {
+      dmg += 55;
+      state.thunderBuffMs = 0;
+      spawnHitSparks(mPx.x, mPx.y, '#38bdf8', 14);
+    }
+    applyDamageToMonster(dmg, mPx.x, mPx.y, false);
+  }
+  updateHud();
+}
+
+function performFocusStrike() {
+    if (state.paused || isAnyOverlayOpen()) return;
+    sfx.unlock();
+    if (state.hunter.focusCooldownMs > 0) {
+      showToast('集中弱点攻撃はクールダウン中です！');
+      return;
+    }
+
+    const wpn = getActiveWeapon();
+    state.hunter.focusCooldownMs = 1150;
+    state.hunter.sharpness = Math.max(0, state.hunter.sharpness - 5);
+
+    const hPx = toArenaPx(state.hunter.x, state.hunter.y);
+    const mPx = toArenaPx(state.monster.x, state.monster.y);
+    const dx = mPx.x - hPx.x;
+    const dy = mPx.y - hPx.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const dirX = dx / dist;
+    const dirY = dy / dist;
+
+    // Dash slightly toward monster when executing Focus Strike
+  state.hunter.x = Math.max(0.1, Math.min(0.9, state.hunter.x + dirX * 0.08));
+  state.hunter.y = Math.max(0.16, Math.min(0.9, state.hunter.y + dirY * 0.08));
+
+  checkBoulderHits(mPx.x, mPx.y, 56);
+
+  sfx.focusStrike();
+    state.slashes.push({
+      x1: hPx.x,
+      y1: hPx.y,
+      x2: mPx.x,
+      y2: mPx.y,
+      color: '#ff3b5c',
+      lifeMs: 240,
+      maxMs: 240
+    });
+
+    const inRange = Math.hypot(mPx.x - hPx.x, mPx.y - hPx.y) <= wpn.range + 75;
+    if (inRange) {
+      const hasWound = state.monster.wounds.length > 0 || state.focusMode;
+      const dmg = getAttackPower(true) + (hasWound ? 95 : 0);
+      applyDamageToMonster(dmg, mPx.x, mPx.y, true);
+
+      if (state.monster.wounds.length > 0) {
+        const popped = state.monster.wounds.shift();
+        state.monster.staggerMs = 1350;
+        state.monster.windupMs = 0;
+        const q = QUESTS[state.questIdx];
+        state.materials[q.matKey] = (state.materials[q.matKey] || 0) + 1;
+        sfx.woundOpen();
+        showToast(`💥 傷口破壊！ ${q.matName}＋1 ＆ モンスター大怯み！`, 2800);
+        setRadio('alma', `「傷口破壊成功！ モンスターが怯んでいます！ 素材【${q.matName}】も入手しました！」`);
+      }
+    } else {
+      showToast('もう少しモンスターに近づいて集中弱点攻撃を当てよう！');
+    }
+    updateHud();
+  }
+
+  function applyDamageToMonster(dmg, px, py, isFocus) {
+    state.monster.hp = Math.max(0, state.monster.hp - dmg);
+    state.monster.flashMs = 120;
+    state.hitstopMs = isFocus ? 65 : 28;
+    state.shakeMs = isFocus ? 240 : 120;
+    state.shakePower = isFocus ? 7 : 3.5;
+
+    spawnHitSparks(px, py, isFocus ? '#ff3b5c' : '#fbbf24', isFocus ? 18 : 10);
+    addDamageNumber(
+      px,
+      py,
+      dmg,
+      isFocus ? '集中弱点!' : '',
+      isFocus,
+      isFocus ? '#ff758f' : '#fef08a'
+    );
+
+    // Build up wound gauge -> open a new wound on monster!
+    state.monster.woundCharge += isFocus ? 35 : 24;
+    if (state.monster.woundCharge >= 100 && state.monster.wounds.length < 3) {
+      state.monster.woundCharge = 0;
+      const angles = [-0.7, 0.7, 0];
+      const a = angles[state.monster.wounds.length % angles.length];
+      state.monster.wounds.push({
+        id: nextWoundId++,
+        ox: Math.cos(a) * 24,
+        oy: Math.sin(a) * 18,
+        hp: 160,
+        maxHp: 160
+      });
+      sfx.woundOpen();
+      showToast('🎯 モンスターに「傷口」が発生！ 集中弱点攻撃 [X/K] を狙え！');
+    }
+
+    updateHud();
+    if (state.monster.hp <= 0) {
+      handleMonsterSlain();
+    }
+  }
+
+  function handleMonsterSlain() {
+    state.paused = true;
+    const q = QUESTS[state.questIdx];
+    state.materials[q.matKey] = (state.materials[q.matKey] || 0) + 2;
+    sfx.victory();
+    updateHud();
+
+    if (state.questIdx < QUESTS.length - 1) {
+      state.maxUnlockedQuest = Math.max(state.maxUnlockedQuest, state.questIdx + 2);
+      openStoryModal('clear');
+    } else {
+      openStoryModal('ending');
+    }
+  }
+
+  function performDodgeOrSeikret() {
+    if (state.paused || isAnyOverlayOpen()) return;
+    sfx.unlock();
+    if (state.hunter.dodgeCooldownMs > 0) return;
+
+    state.hunter.dodgeCooldownMs = 520;
+    state.hunter.invulnMs = 420;
+    state.hunter.seikretBoostMs = 700;
+    sfx.dodge();
+
+    const nx = Math.max(0.08, Math.min(0.92, state.hunter.x + state.hunter.aimX * 0.14));
+    const ny = Math.max(0.15, Math.min(0.91, state.hunter.y + state.hunter.aimY * 0.14));
+    state.hunter.x = nx;
+    state.hunter.y = ny;
+    const p = toArenaPx(nx, ny);
+    spawnHitSparks(p.x, p.y, '#2dd4bf', 8);
+  }
+
+  function performHealAndSharpen() {
+    if (state.paused || isAnyOverlayOpen()) return;
+    sfx.unlock();
+
+    let acted = false;
+    if (state.hunter.hp < state.hunter.maxHp && state.hunter.potions > 0) {
+      state.hunter.potions--;
+      const healAmt = 65 + (state.armorLv - 1) * 15;
+      state.hunter.hp = Math.min(state.hunter.maxHp, state.hunter.hp + healAmt);
+      acted = true;
+    }
+    if (state.hunter.sharpness < 80 && state.hunter.whetstones > 0) {
+      state.hunter.whetstones--;
+      state.hunter.sharpness = 100;
+      acted = true;
+    }
+
+    if (acted) {
+      sfx.healOrSharpen();
+      const p = toArenaPx(state.hunter.x, state.hunter.y);
+      spawnHitSparks(p.x, p.y, '#4ade80', 12);
+      showToast('🧪 回復薬＆砥石使用！ 体力と斬れ味が回復した！');
+    } else {
+      showToast('体力＆斬れ味は十分か、アイテムが切れています。');
+    }
+    updateHud();
+  }
+
+  function swapEquippedWeapon() {
+    state.equippedSlot = (state.equippedSlot + 1) % state.weaponPouch.length;
+    sfx.dodge();
+    const wpn = getActiveWeapon();
+    showToast(`武器鞄から ${wpn.short} に持ち替えました！`);
+    updateHud();
+  }
+
+  /* =========================================================
+     5. SIMULATION LOOP & LINGERING DAMAGE NUMBERS
+     ========================================================= */
+  const heldKeys = new Set();
+  const heldDirs = new Set();
+
+  function updateSimulation(dtMs) {
+    if (state.paused || isAnyOverlayOpen()) return;
+
+    if (state.hitstopMs > 0) {
+      state.hitstopMs = Math.max(0, state.hitstopMs - dtMs);
+      return;
+    }
+
+    if (state.shakeMs > 0) state.shakeMs = Math.max(0, state.shakeMs - dtMs);
+    if (state.hunter.atkCooldownMs > 0) state.hunter.atkCooldownMs = Math.max(0, state.hunter.atkCooldownMs - dtMs);
+    if (state.hunter.focusCooldownMs > 0) state.hunter.focusCooldownMs = Math.max(0, state.hunter.focusCooldownMs - dtMs);
+    if (state.hunter.dodgeCooldownMs > 0) state.hunter.dodgeCooldownMs = Math.max(0, state.hunter.dodgeCooldownMs - dtMs);
+    if (state.hunter.invulnMs > 0) state.hunter.invulnMs = Math.max(0, state.hunter.invulnMs - dtMs);
+    if (state.hunter.seikretBoostMs > 0) state.hunter.seikretBoostMs = Math.max(0, state.hunter.seikretBoostMs - dtMs);
+    if (state.monster.flashMs > 0) state.monster.flashMs = Math.max(0, state.monster.flashMs - dtMs);
+
+    // Movement vector from keyboard + virtual D-pad
+    let mx = 0;
+    let my = 0;
+    if (heldKeys.has('ArrowLeft') || heldKeys.has('a') || heldDirs.has('left')) mx -= 1;
+    if (heldKeys.has('ArrowRight') || heldKeys.has('d') || heldDirs.has('right')) mx += 1;
+    if (heldKeys.has('ArrowUp') || heldKeys.has('w') || heldDirs.has('up')) my -= 1;
+    if (heldKeys.has('ArrowDown') || heldKeys.has('s') || heldDirs.has('down')) my += 1;
+
+    if (mx !== 0 || my !== 0) {
+      const len = Math.hypot(mx, my);
+      mx /= len;
+      my /= len;
+      state.hunter.aimX = mx;
+      state.hunter.aimY = my;
+      const spd = state.hunter.seikretBoostMs > 0 ? 0.44 : 0.27;
+      state.hunter.x = Math.max(0.08, Math.min(0.92, state.hunter.x + mx * spd * (dtMs / 1000)));
+      state.hunter.y = Math.max(0.15, Math.min(0.91, state.hunter.y + my * spd * (dtMs / 1000)));
+    }
+
+    // Respawn boulders & collect endemic flora (Vigorwasp & Thunderbug)
+    state.boulders.forEach(bd => {
+      if (bd.dropped) {
+        bd.respawnMs -= dtMs;
+        if (bd.respawnMs <= 0) {
+          bd.dropped = false;
+        }
+      }
+    });
+
+    state.floraNodes.forEach(fl => {
+      if (fl.respawnMs > 0) {
+        fl.respawnMs -= dtMs;
+        return;
+      }
+      if (Math.hypot(fl.x - state.hunter.x, fl.y - state.hunter.y) < 0.075) {
+        fl.respawnMs = 11000;
+        const pxPos = toArenaPx(fl.x, fl.y);
+        if (fl.kind === 'vigorwasp') {
+          state.hunter.hp = Math.min(state.hunter.maxHp, state.hunter.hp + 45);
+          state.hunter.sharpness = Math.min(100, state.hunter.sharpness + 25);
+          sfx.healOrSharpen();
+          spawnHitSparks(pxPos.x, pxPos.y, '#4ade80', 12);
+          showToast('🐞 回復ミツムシ発動！ 体力＋45＆斬れ味＋25回復！');
+        } else {
+          state.thunderBuffMs = 9000;
+          sfx.woundOpen();
+          spawnHitSparks(pxPos.x, pxPos.y, '#38bdf8', 12);
+          showToast('⚡ 雷光の実を獲得！ 次の攻撃に雷撃＋55追加！');
+        }
+        updateHud();
+      }
+    });
+
+    if (state.thunderBuffMs > 0) {
+      state.thunderBuffMs = Math.max(0, state.thunderBuffMs - dtMs);
+    }
+
+    // Monster AI (stagger, telegraph windup, lunge/charge)
+    const m = state.monster;
+    if (m.staggerMs > 0) {
+      m.staggerMs = Math.max(0, m.staggerMs - dtMs);
+    } else if (m.windupMs > 0) {
+      m.windupMs -= dtMs;
+      if (m.windupMs <= 0) {
+        // Execute monster lunge toward hunter's position
+        m.x = Math.max(0.16, Math.min(0.84, m.x + m.chargeDirX * 0.24));
+        m.y = Math.max(0.22, Math.min(0.82, m.y + m.chargeDirY * 0.24));
+        m.flashMs = 150;
+        sfx.slash();
+
+        const distToHunter = Math.hypot(m.x - state.hunter.x, m.y - state.hunter.y);
+        if (distToHunter < 0.14 && state.hunter.invulnMs <= 0) {
+          const defReduce = Math.min(0.55, (state.armorLv - 1) * 0.1);
+          const rawDmg = m.key === 'arkveld' ? 38 : (m.key === 'uthduna' ? 32 : (m.key === 'reydau' ? 28 : 22));
+          const taken = Math.max(6, Math.round(rawDmg * (1 - defReduce)));
+          state.hunter.hp = Math.max(0, state.hunter.hp - taken);
+          state.hunter.invulnMs = 1100;
+          state.shakeMs = 260;
+          state.shakePower = 8;
+          sfx.hurt();
+          const hPx = toArenaPx(state.hunter.x, state.hunter.y);
+          spawnHitSparks(hPx.x, hPx.y, '#ef4444', 14);
+          addDamageNumber(hPx.x, hPx.y - 12, taken, '被弾!', true, '#ff4d6d');
+
+          if (state.hunter.hp <= 0) {
+            state.hunter.hp = state.hunter.maxHp;
+            state.hunter.potions = Math.max(2, state.hunter.potions);
+            state.hunter.invulnMs = 1800;
+            showToast('セクレトに救助されてベースキャンプへ帰還！ 体力全快！', 2800);
+          }
+          updateHud();
+        }
+      }
+    } else {
+      m.attackCooldownMs -= dtMs;
+      const dx = state.hunter.x - m.x;
+      const dy = state.hunter.y - m.y;
+      const d = Math.hypot(dx, dy) || 1;
+      m.x = Math.max(0.16, Math.min(0.84, m.x + (dx / d) * (m.key === 'arkveld' ? 0.11 : 0.075) * (dtMs / 1000)));
+      m.y = Math.max(0.2, Math.min(0.76, m.y + (dy / d) * (m.key === 'arkveld' ? 0.11 : 0.075) * (dtMs / 1000)));
+
+      if (m.attackCooldownMs <= 0) {
+        m.attackCooldownMs = m.key === 'arkveld' ? 1900 : 2350;
+        m.windupMs = 680; // Clear telegraph window so player can dodge!
+        m.chargeDirX = dx / d;
+        m.chargeDirY = dy / d;
+      }
+    }
+
+    // Update projectiles (Bow arrows)
+    for (let i = state.projectiles.length - 1; i >= 0; i--) {
+      const pr = state.projectiles[i];
+      pr.x += pr.vx * (dtMs / 1000);
+      pr.y += pr.vy * (dtMs / 1000);
+      pr.lifeMs -= dtMs;
+      const mPx = toArenaPx(m.x, m.y);
+      if (Math.hypot(pr.x - mPx.x, pr.y - mPx.y) < 38) {
+        applyDamageToMonster(pr.dmg, pr.x, pr.y, false);
+        state.projectiles.splice(i, 1);
+        continue;
+      }
+      if (pr.lifeMs <= 0) {
+        state.projectiles.splice(i, 1);
+      }
+    }
+
+    // Update slashes
+    for (let i = state.slashes.length - 1; i >= 0; i--) {
+      state.slashes[i].lifeMs -= dtMs;
+      if (state.slashes[i].lifeMs <= 0) state.slashes.splice(i, 1);
+    }
+
+    // Update particles
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const pt = state.particles[i];
+      pt.x += pt.vx * (dtMs / 1000);
+      pt.y += pt.vy * (dtMs / 1000);
+      pt.lifeMs -= dtMs;
+      if (pt.lifeMs <= 0) state.particles.splice(i, 1);
+    }
+
+    // Update lingering damage numbers (~1.45s so damage is super readable)
+    for (let i = state.damageNumbers.length - 1; i >= 0; i--) {
+      const dn = state.damageNumbers[i];
+      dn.ageMs += dtMs;
+      dn.y += dn.vy * (dtMs / 1000);
+      dn.vy *= 0.96;
+      if (dn.ageMs >= dn.durationMs) {
+        state.damageNumbers.splice(i, 1);
+      }
+    }
+  }
+
+  /* =========================================================
+     6. CANVAS RENDERING: ARENA, MONSTERS, WOUNDS & DAMAGE POPUPS
+     ========================================================= */
+  function fitCanvas(canvas) {
+    if (!canvas) return { ctx: null, w: 0, h: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const pw = Math.round(w * dpr);
+    const ph = Math.round(h * dpr);
+    if (canvas.width !== pw || canvas.height !== ph) {
+      canvas.width = pw;
+      canvas.height = ph;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+
+  function drawCharacterPortrait(ctx, ch, cx, cy, scale, now) {
+    if (!ch) return;
+    ctx.save();
+    const bob = Math.sin(now / 380) * 2;
+    ctx.translate(cx, cy + bob);
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = ch.coat;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(-22, 14, 44, 28, 9);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = ch.accent;
+    ctx.fillRect(-6, 15, 12, 18);
+
+    ctx.fillStyle = '#ffedd5';
+    ctx.beginPath();
+    ctx.arc(0, -7, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = ch.hair;
+    ctx.beginPath();
+    ctx.arc(0, -11, 19, Math.PI * 0.9, Math.PI * 2.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = ch.eye;
+    ctx.beginPath();
+    ctx.arc(-6.5, -5, 2.8, 0, Math.PI * 2);
+    ctx.arc(6.5, -5, 2.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawDistinctMonster(ctx, m, tmpl, mPx, now) {
+    const breath = Math.sin(now / 260) * 3;
+    ctx.save();
+    ctx.translate(mPx.x, mPx.y + breath);
+
+    if (m.windupMs > 0) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 59, 92, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(m.chargeDirX * 125, m.chargeDirY * 125);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const fillMain = m.flashMs > 0 ? '#ffffff' : tmpl.bodyColor;
+    const fillSub = m.flashMs > 0 ? '#fef08a' : tmpl.bellyColor;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.4;
+
+    if (m.key === 'chatacabra') {
+      // チャタカブラ：ずんぐりした両生種＋岩を纏う太い前脚＆鉱石プレート
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.arc(-34, 4, 14, 0, Math.PI * 2);
+      ctx.arc(34, 4, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = fillMain;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 34, 29, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = fillSub;
+      ctx.beginPath();
+      ctx.ellipse(0, 10, 22, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (m.key === 'reydau') {
+      // レ・ダウ：鋭く伸びる長角翼＆帯電レールガン角＆雷光アーク
+      ctx.fillStyle = fillMain;
+      ctx.beginPath();
+      ctx.moveTo(0, -18);
+      ctx.lineTo(-56, -28);
+      ctx.lineTo(-34, 6);
+      ctx.lineTo(0, 14);
+      ctx.lineTo(34, 6);
+      ctx.lineTo(56, -28);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Horned crest
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(-7, -14); ctx.lineTo(-18, -36);
+      ctx.moveTo(7, -14); ctx.lineTo(18, -36);
+      ctx.stroke();
+
+      // Cyan lightning arcs
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-48, -18); ctx.lineTo(-26, -26); ctx.lineTo(-14, -12);
+      ctx.moveTo(48, -18); ctx.lineTo(26, -26); ctx.lineTo(14, -12);
+      ctx.stroke();
+    } else if (m.key === 'uthduna') {
+      // ウズ・トゥナ：重厚な巨体＋半透明の水ヴェールヒレ＆波紋
+      ctx.fillStyle = 'rgba(34, 211, 238, 0.28)';
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 54, 38, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = fillMain;
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 38, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = fillSub;
+      ctx.beginPath();
+      ctx.ellipse(0, 10, 24, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // アルシュベルド：鞭のように伸びる鎖刃（チェーンブレード）＆龍属性の紅い棘
+      const whip = Math.sin(now / 140) * 12;
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(-24, -4);
+      ctx.quadraticCurveTo(-56, -22 + whip, -66, 14 - whip);
+      ctx.moveTo(24, -4);
+      ctx.quadraticCurveTo(56, -22 - whip, 66, 14 + whip);
+      ctx.stroke();
+
+      // Crimson chain-blade tips
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(-66, 14 - whip, 5, 0, Math.PI * 2);
+      ctx.arc(66, 14 + whip, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = fillMain;
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(0, -28);
+      ctx.lineTo(30, -4);
+      ctx.lineTo(18, 26);
+      ctx.lineTo(-18, 26);
+      ctx.lineTo(-30, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Eyes
+    ctx.fillStyle = m.staggerMs > 0 ? '#38bdf8' : '#ff3b5c';
+    ctx.beginPath();
+    ctx.arc(-11, -6, 4, 0, Math.PI * 2);
+    ctx.arc(11, -6, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wounds (highlighted in Focus Mode)
+    m.wounds.forEach(wd => {
+      const pulse = 1 + Math.sin(now / 120) * (state.focusMode ? 0.25 : 0.1);
+      ctx.save();
+      ctx.translate(wd.ox, wd.oy);
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = state.focusMode ? 'rgba(255, 59, 92, 0.94)' : 'rgba(225, 29, 72, 0.72)';
+      ctx.strokeStyle = state.focusMode ? '#fef08a' : '#fda4af';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(9, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-9, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  function drawArena(ctx, w, h, now) {
+    arenaRectCache = { x: 0, y: 0, w, h };
+    const q = QUESTS[state.questIdx] || QUESTS[0];
+
+    ctx.save();
+    if (state.shakeMs > 0) {
+      const sx = (Math.random() - 0.5) * state.shakePower * 2;
+      const sy = (Math.random() - 0.5) * state.shakePower * 2;
+      ctx.translate(sx, sy);
+    }
+
+    // Biome background & ecological landmarks
+    const bgMap = {
+      sand: ['#3d2c19', '#1f160c'],
+      thunder: ['#292538', '#110f1a'],
+      flood: ['#17323b', '#0b181d'],
+      ruins: ['#2a1f36', '#120d1a']
+    };
+    const [topC, botC] = bgMap[q.arenaTheme] || bgMap.sand;
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, topC);
+    grad.addColorStop(1, botC);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Biome decorative ground motifs (dunes / lily pools / ancient wyveria rings)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.5, Math.min(w, h) * 0.28, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Falling Boulder Traps
+    state.boulders.forEach(bd => {
+      const bPos = toArenaPx(bd.x, bd.y);
+      ctx.save();
+      ctx.translate(bPos.x, bPos.y);
+      if (!bd.dropped) {
+        ctx.fillStyle = '#a16207';
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#fef9c3';
+        ctx.font = '900 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('岩', 0, 1);
+      } else {
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+
+    // Endemic Flora (Vigorwasp & Thunderbug)
+    state.floraNodes.forEach(fl => {
+      if (fl.respawnMs > 0) return;
+      const fPos = toArenaPx(fl.x, fl.y);
+      const bob = Math.sin(now / 280 + fl.id) * 2.5;
+      ctx.save();
+      ctx.translate(fPos.x, fPos.y + bob);
+      ctx.fillStyle = fl.kind === 'vigorwasp' ? '#22c55e' : '#38bdf8';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(fl.kind === 'vigorwasp' ? '癒' : '雷', 0, 1);
+      ctx.restore();
+    });
+
+    // Draw Distinct Large Monster
+    const m = state.monster;
+    const tmpl = MONSTER_TEMPLATES[m.key] || MONSTER_TEMPLATES.chatacabra;
+    const mPx = toArenaPx(m.x, m.y);
+    drawDistinctMonster(ctx, m, tmpl, mPx, now);
+
+    // Draw Hunter + Seikret Aura
+    const hPx = toArenaPx(state.hunter.x, state.hunter.y);
+    const blink = state.hunter.invulnMs > 0 && Math.floor(now / 70) % 2 === 0;
+    if (!blink) {
+      ctx.save();
+      ctx.translate(hPx.x, hPx.y);
+
+      if (state.hunter.seikretBoostMs > 0) {
+        ctx.strokeStyle = '#2dd4bf';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 22, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Hunter body & helmet
+      ctx.fillStyle = '#2563eb';
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(0, -5, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Aim / Focus line
+      if (state.focusMode) {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(mPx.x - hPx.x, mPx.y - hPx.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Draw Slash Arcs
+    state.slashes.forEach(sl => {
+      const alpha = Math.max(0, sl.lifeMs / sl.maxMs);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = sl.color;
+      ctx.lineWidth = 6 * alpha + 2;
+      ctx.beginPath();
+      ctx.moveTo(sl.x1, sl.y1);
+      ctx.lineTo(sl.x2, sl.y2);
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // Draw Arrows
+    state.projectiles.forEach(pr => {
+      ctx.save();
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(pr.x, pr.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Draw Sparks
+    state.particles.forEach(pt => {
+      const alpha = Math.max(0, pt.lifeMs / pt.maxMs);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = pt.color;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Draw Lingering Floating Damage Numbers (stay ~1.45s with smooth fade in final 350ms)
+    state.damageNumbers.forEach(dn => {
+      const remain = dn.durationMs - dn.ageMs;
+      const alpha = remain < 350 ? Math.max(0, remain / 350) : 1;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = dn.isCrit ? '900 20px sans-serif' : '900 17px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(9, 13, 22, 0.92)';
+      const txt = dn.label ? `${dn.label} ${dn.amount}` : `${dn.amount}`;
+      ctx.strokeText(txt, dn.x, dn.y);
+      ctx.fillStyle = dn.color;
+      ctx.fillText(txt, dn.x, dn.y);
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  let prevFrameTime = performance.now();
+  function mainLoop(now) {
+    const dt = Math.min(80, now - prevFrameTime);
+    prevFrameTime = now;
+
+    updateSimulation(dt);
+
+    const hFit = fitCanvas(document.getElementById('hunt-canvas'));
+    if (hFit.ctx) drawArena(hFit.ctx, hFit.w, hFit.h, now);
+
+    const rFit = fitCanvas(document.getElementById('radio-portrait-canvas'));
+    if (rFit.ctx) {
+      rFit.ctx.clearRect(0, 0, rFit.w, rFit.h);
+      drawCharacterPortrait(rFit.ctx, CHARACTERS[state.activeSpeakerId] || CHARACTERS.alma, rFit.w * 0.5, rFit.h * 0.56, Math.max(0.85, rFit.w / 72), now);
+    }
+
+    if (document.getElementById('title-screen').classList.contains('active')) {
+      const tFit = fitCanvas(document.getElementById('title-preview-canvas'));
+      if (tFit.ctx) {
+        tFit.ctx.clearRect(0, 0, tFit.w, tFit.h);
+        const list = [CHARACTERS.alma, CHARACTERS.gemma, CHARACTERS.olivia, CHARACTERS.nata];
+        list.forEach((ch, idx) => {
+          drawCharacterPortrait(tFit.ctx, ch, tFit.w * ((idx + 0.5) / 4), tFit.h * 0.62, 1.15, now);
+        });
+      }
+    }
+
+    if (document.getElementById('story-screen').classList.contains('active')) {
+      const sFit = fitCanvas(document.getElementById('story-art-canvas'));
+      if (sFit.ctx) {
+        sFit.ctx.clearRect(0, 0, sFit.w, sFit.h);
+        drawCharacterPortrait(sFit.ctx, CHARACTERS[state.activeSpeakerId] || CHARACTERS.alma, sFit.w * 0.3, sFit.h * 0.6, 1.35, now);
+        drawCharacterPortrait(sFit.ctx, CHARACTERS.gemma, sFit.w * 0.72, sFit.h * 0.6, 1.25, now);
+      }
+    }
+
+    requestAnimationFrame(mainLoop);
+  }
+
+  /* =========================================================
+     7. HUD, COMMS, STORY/ENDING, SMITHY & SAVE/DELETE SCREENS
+     ========================================================= */
+  function setRadio(speakerId, text) {
+    state.activeSpeakerId = speakerId;
+    const ch = CHARACTERS[speakerId] || CHARACTERS.alma;
+    document.getElementById('radio-speaker').textContent = ch.name;
+    document.getElementById('radio-text').textContent = text;
+  }
+
+  function updateHud() {
+    const q = QUESTS[state.questIdx] || QUESTS[0];
+    document.getElementById('hud-quest-title').textContent = q.title;
+
+    const fBtn = document.getElementById('hud-focus-pill');
+    if (state.focusMode) {
+      fBtn.classList.add('active-focus');
+      fBtn.textContent = '🎯 集中モード：ON [F]';
+    } else {
+      fBtn.classList.remove('active-focus');
+      fBtn.textContent = '🎯 集中モード [F]';
+    }
+
+    document.getElementById('hud-monster-name').textContent = `${state.monster.name}（傷口:${state.monster.wounds.length}）`;
+    document.getElementById('hud-monster-hp-txt').textContent = `HP ${state.monster.hp} / ${state.monster.maxHp}`;
+    const hpPct = Math.max(0, Math.min(100, (state.monster.hp / state.monster.maxHp) * 100));
+    document.getElementById('monster-hp-fill').style.width = `${hpPct}%`;
+
+    document.getElementById('hud-hunter-hp').textContent = `♥ 体力 ${state.hunter.hp}/${state.hunter.maxHp}`;
+    document.getElementById('hud-weapon-tag').textContent = `${getActiveWeapon().short} Lv.${state.weaponLv}`;
+
+    const sharp = Math.round(state.hunter.sharpness);
+    const sBadge = document.getElementById('hud-sharp-tag');
+    sBadge.textContent = `斬れ味 ${sharp}%`;
+    if (sharp > 55) {
+      sBadge.style.background = '#16a34a';
+      sBadge.style.color = '#ffffff';
+    } else if (sharp > 20) {
+      sBadge.style.background = '#d97706';
+      sBadge.style.color = '#fef9c3';
+    } else {
+      sBadge.style.background = '#dc2626';
+      sBadge.style.color = '#ffffff';
+    }
+
+    document.getElementById('hud-potions').textContent = `🧪 薬:${state.hunter.potions} 砥:${state.hunter.whetstones}`;
+
+    const pcMat = document.getElementById('pc-materials-box');
+    if (pcMat) {
+      pcMat.innerHTML = `
+        <div>纏蛙の皮: ${state.materials.chataHide || 0} / 煌雷竜の甲殻: ${state.materials.reyShell || 0}</div>
+        <div>波衣竜の皮: ${state.materials.uthVeil || 0} / 鎖刃竜の鱗: ${state.materials.arkScale || 0}</div>
+        <div>武器 Lv.${state.weaponLv} / 防具 Lv.${state.armorLv}</div>
+      `;
+    }
+    const pcSt = document.getElementById('pc-hunt-status');
+  if (pcSt) {
+    const buffTxt = state.thunderBuffMs > 0 ? '⚡雷撃付与中' : '';
+    pcSt.textContent = `集中:${state.focusMode ? 'ON' : 'OFF'} ${buffTxt} ｜ 装備: ${getActiveWeapon().name}`;
+  }
+}
+
+function openStoryModal(mode) {
+    state.storyMode = mode;
+    state.paused = true;
+    const q = QUESTS[state.questIdx] || QUESTS[0];
+
+    if (mode === 'intro') {
+      document.getElementById('story-header-title').textContent = `📡 ${q.title}`;
+      state.storyQueue = [
+        { speaker: q.introSpeaker, text: q.introText },
+        {
+          speaker: CHARACTERS.gemma.name,
+          text: '「狩りで手に入れたモンスター素材は、あたしの加工屋［G］で武器・防具の強化に使えるよ！ 傷口を壊して素材をたっぷり集めよう！」'
+        }
+      ];
+    } else if (mode === 'clear') {
+      document.getElementById('story-header-title').textContent = `🎉 ${q.title} クリア！`;
+      state.storyQueue = [
+        { speaker: CHARACTERS.alma.name, text: q.clearText },
+        { speaker: CHARACTERS.olivia.name, text: '「よくやったな！ 次のエリアの大型モンスターに備えて、加工屋で装備を整えておけよ！」' }
+      ];
+    } else {
+      document.getElementById('story-header-title').textContent = '👑 GRAND ENDING：禁足地の夜明け';
+      state.storyQueue = [
+        { speaker: CHARACTERS.nata.name, text: q.clearText },
+        {
+          speaker: 'アルマ＆ジェマ＆オリヴィア＆ナタ',
+          text: `「禁足地の脅威は退けられ、調査隊は新たな絆とともに未来へと歩み出した！ 武器Lv.${state.weaponLv}・防具Lv.${state.armorLv}で全4大型モンスターを制覇！ お疲れ様でした！」`
+        }
+      ];
+    }
+
+    state.storyIndex = 0;
+    renderStoryStep();
+    document.getElementById('story-screen').classList.add('active');
+  }
+
+  function renderStoryStep() {
+    const item = state.storyQueue[state.storyIndex];
+    if (!item) return;
+    document.getElementById('story-speaker').textContent = item.speaker;
+    document.getElementById('story-body').textContent = item.text;
+    const isLast = state.storyIndex >= state.storyQueue.length - 1;
+    const btn = document.getElementById('btn-story-next');
+    if (state.storyMode === 'intro') {
+      btn.textContent = isLast ? '狩猟クエスト開始！ ▶' : '次の通信へ ▶';
+    } else if (state.storyMode === 'clear') {
+      btn.textContent = isLast ? '次のクエストへ進む！ ▶' : '次の通信へ ▶';
+    } else {
+      btn.textContent = isLast ? 'タイトル画面へ戻る 🏠' : '次の通信へ ▶';
+    }
+  }
+
+  function finishStoryModal() {
+    document.getElementById('story-screen').classList.remove('active');
+    if (state.storyMode === 'intro') {
+      state.paused = false;
+    } else if (state.storyMode === 'clear') {
+      initQuestEncounter(state.questIdx + 1, true);
+      openStoryModal('intro');
+    } else {
+      state.paused = true;
+      document.getElementById('title-screen').classList.add('active');
+    }
+  }
+
+  function getTotalMaterialsCount() {
+    return Object.values(state.materials).reduce((acc, v) => acc + (v || 0), 0);
+  }
+
+  function consumeMaterials(cost) {
+    let rem = cost;
+    const keys = ['chataHide', 'reyShell', 'uthVeil', 'arkScale'];
+    for (const k of keys) {
+      if (rem <= 0) break;
+      const have = state.materials[k] || 0;
+      const take = Math.min(have, rem);
+      state.materials[k] = have - take;
+      rem -= take;
+    }
+  }
+
+  function openSmithyModal() {
+    state.paused = true;
+    renderSmithy();
+    document.getElementById('smithy-screen').classList.add('active');
+  }
+
+  function renderSmithy() {
+    const totalMat = getTotalMaterialsCount();
+    document.getElementById('materials-summary').innerHTML = `
+      <strong>所持素材合計：${totalMat}個</strong>（纏蛙の皮:${state.materials.chataHide||0} / 煌雷竜の甲殻:${state.materials.reyShell||0} / 波衣竜の皮:${state.materials.uthVeil||0} / 鎖刃竜の鱗:${state.materials.arkScale||0}）
+    `;
+
+    const wpnCost = state.weaponLv * 1;
+    const armCost = state.armorLv * 1;
+    const supCost = 1;
+
+    const list = document.getElementById('smithy-upgrades-list');
+    list.innerHTML = `
+      <div class="card-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong style="color:var(--amber-bright);">⚔ 武器強化（現在 Lv.${state.weaponLv}）</strong>
+          <button id="btn-forge-wpn" type="button" class="mini-btn gold">素材${wpnCost}個で強化</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-dim);margin-top:3px;">大剣・太刀・弓の攻撃力を＋16上昇させます。</div>
+      </div>
+      <div class="card-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong style="color:#7dd3fc;">🛡 防具強化（現在 Lv.${state.armorLv}）</strong>
+          <button id="btn-forge-arm" type="button" class="mini-btn gold">素材${armCost}個で強化</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-dim);margin-top:3px;">最大体力＋25＆モンスターからの被ダメージを軽減します。</div>
+      </div>
+      <div class="card-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong style="color:#4ade80;">🧪 回復薬＆砥石補給</strong>
+          <button id="btn-forge-sup" type="button" class="mini-btn gold">素材${supCost}個で補給</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-dim);margin-top:3px;">回復薬＋2・砥石＋2を補充します。</div>
+      </div>
+    `;
+
+    document.getElementById('btn-forge-wpn').onclick = () => {
+      if (getTotalMaterialsCount() < wpnCost) {
+        showToast('素材が足りません！ 狩猟や傷口破壊で集めよう！');
+        return;
+      }
+      consumeMaterials(wpnCost);
+      state.weaponLv++;
+      audio.forge();
+      showToast(`⚔ 武器が Lv.${state.weaponLv} に強化されました！`);
+      updateHud();
+      renderSmithy();
+    };
+
+    document.getElementById('btn-forge-arm').onclick = () => {
+      if (getTotalMaterialsCount() < armCost) {
+        showToast('素材が足りません！');
+        return;
+      }
+      consumeMaterials(armCost);
+      state.armorLv++;
+      state.hunter.maxHp = 150 + (state.armorLv - 1) * 25;
+      state.hunter.hp = state.hunter.maxHp;
+      audio.forge();
+      showToast(`🛡 防具が Lv.${state.armorLv} に強化されました！`);
+      updateHud();
+      renderSmithy();
+    };
+
+    document.getElementById('btn-forge-sup').onclick = () => {
+      if (getTotalMaterialsCount() < supCost) {
+        showToast('素材が足りません！');
+        return;
+      }
+      consumeMaterials(supCost);
+      state.hunter.potions = Math.min(8, state.hunter.potions + 2);
+      state.hunter.whetstones = Math.min(8, state.hunter.whetstones + 2);
+      audio.forge();
+      showToast('🧪 回復薬＋2・砥石＋2 を補給しました！');
+      updateHud();
+      renderSmithy();
+    };
+  }
+
+  /* Save / Load / Delete Management */
+  function readSaves() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      return raw ? (JSON.parse(raw) || {}) : {};
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function writeSaves(obj) {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(obj));
+    } catch (_e) {
+      showToast('セーブデータの保存に失敗しました。');
+    }
+  }
+
+  function saveToSlot(slotNum) {
+    const q = QUESTS[state.questIdx] || QUESTS[0];
+    const now = new Date();
+    const ts = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const saves = readSaves();
+    saves[String(slotNum)] = {
+      slotNum,
+      questIdx: state.questIdx,
+      questTitle: q.title,
+      maxUnlockedQuest: state.maxUnlockedQuest,
+      weaponPouch: [...state.weaponPouch],
+      equippedSlot: state.equippedSlot,
+      weaponLv: state.weaponLv,
+      armorLv: state.armorLv,
+      materials: { ...state.materials },
+      potions: state.hunter.potions,
+      whetstones: state.hunter.whetstones,
+      timestamp: ts
+    };
+    writeSaves(saves);
+    state.pendingDelSlot = null;
+    audio.forge();
+    showToast(`スロット ${slotNum} に狩猟データをセーブしました！`);
+    renderSaveSlots();
+  }
+
+  function loadFromSlot(slotNum) {
+    const saves = readSaves();
+    const d = saves[String(slotNum)];
+    if (!d) {
+      showToast('このスロットにセーブデータはありません。');
+      return;
+    }
+    state.maxUnlockedQuest = Math.max(state.maxUnlockedQuest, d.maxUnlockedQuest || 1);
+    state.weaponPouch = Array.isArray(d.weaponPouch) && d.weaponPouch.length ? d.weaponPouch : ['greatsword', 'longsword'];
+    state.equippedSlot = d.equippedSlot || 0;
+    state.weaponLv = d.weaponLv || 1;
+    state.armorLv = d.armorLv || 1;
+    state.materials = { chataHide: 0, reyShell: 0, uthVeil: 0, arkScale: 0, ...(d.materials || {}) };
+    initQuestEncounter(d.questIdx || 0, false);
+    if (typeof d.potions === 'number') state.hunter.potions = d.potions;
+    if (typeof d.whetstones === 'number') state.hunter.whetstones = d.whetstones;
+    updateHud();
+    closeAllOverlays();
+    document.getElementById('title-screen').classList.remove('active');
+    state.paused = false;
+    audio.forge();
+    showToast(`スロット ${slotNum} から再開しました！`);
+  }
+
+  function deleteSingleSlot(slotNum) {
+    if (state.pendingDelSlot !== slotNum) {
+      state.pendingDelSlot = slotNum;
+      showToast(`もう一度「削除確定」を押すとスロット ${slotNum} を削除します。`);
+      renderSaveSlots();
+      return;
+    }
+    const saves = readSaves();
+    delete saves[String(slotNum)];
+    writeSaves(saves);
+    state.pendingDelSlot = null;
+    audio.slash();
+    showToast(`スロット ${slotNum} のセーブデータを削除しました。`);
+    renderSaveSlots();
+  }
+
+  function deleteAllSaves() {
+    if (!state.pendingPurgeAll) {
+      state.pendingPurgeAll = true;
+      document.getElementById('btn-purge-all-saves').textContent = '⚠ 全セーブデータ削除確定（取り消し不可）';
+      showToast('確認：もう一度押すとすべてのセーブデータが削除されます。');
+      return;
+    }
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch (_e) {
+      // Ignore
+    }
+    state.pendingPurgeAll = false;
+    state.pendingDelSlot = null;
+    document.getElementById('btn-purge-all-saves').textContent = '🗑 すべてのセーブデータを削除する';
+    audio.slash();
+    showToast('すべてのセーブデータを削除しました。');
+    renderSaveSlots();
+  }
+
+  function openSaveModal(mode) {
+    state.saveMode = mode;
+    state.pendingDelSlot = null;
+    state.pendingPurgeAll = false;
+    state.paused = true;
+    document.getElementById('btn-purge-all-saves').textContent = '🗑 すべてのセーブデータを削除する';
+    document.getElementById('save-screen-title').textContent =
+      mode === 'save' ? '💾 セーブスロット選択' : '📂 ロード・セーブデータ削除';
+    renderSaveSlots();
+    document.getElementById('save-screen').classList.add('active');
+  }
+
+  function renderSaveSlots() {
+    const list = document.getElementById('save-slots-list');
+    list.innerHTML = '';
+    const saves = readSaves();
+
+    for (let s = 1; s <= MAX_SLOTS; s++) {
+      const item = saves[String(s)];
+      const card = document.createElement('div');
+      card.className = 'card-panel';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '6px';
+
+      if (item) {
+        const armed = state.pendingDelSlot === s;
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="color:var(--amber-bright);">SLOT ${s}：${item.questTitle}</strong>
+            <span style="font-size:11px;color:var(--text-dim);">${item.timestamp}</span>
+          </div>
+          <div style="font-size:11.5px;color:#bae6fd;">武器Lv.${item.weaponLv} / 防具Lv.${item.armorLv}</div>
+          <div style="display:flex;gap:6px;">
+            ${state.saveMode === 'save'
+              ? `<button type="button" class="mini-btn gold" style="flex:1;" data-op="save" data-s="${s}">💾 上書きセーブ</button>`
+              : `<button type="button" class="mini-btn gold" style="flex:1;" data-op="load" data-s="${s}">📂 ロード再開</button>`
+            }
+            <button type="button" class="mini-btn danger" data-op="del" data-s="${s}">${armed ? '⚠ 削除確定' : '🗑 削除'}</button>
+          </div>
+        `;
+      } else {
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="color:var(--text-dim);">SLOT ${s}：空きスロット</strong>
+            ${state.saveMode === 'save'
+              ? `<button type="button" class="mini-btn gold" data-op="save" data-s="${s}">💾 ここにセーブ</button>`
+              : `<span style="font-size:11px;color:#64748b;">データなし</span>`
+            }
+          </div>
+        `;
+      }
+
+      card.querySelectorAll('button').forEach(btn => {
+        btn.onclick = () => {
+          const op = btn.dataset.op;
+          const sid = parseInt(btn.dataset.s, 10);
+          if (op === 'save') saveToSlot(sid);
+          else if (op === 'load') loadFromSlot(sid);
+          else if (op === 'del') deleteSingleSlot(sid);
+        };
+      });
+
+      list.appendChild(card);
+    }
+  }
+
+  function openGuideModal() {
+    state.paused = true;
+    const box = document.getElementById('guide-list');
+    box.innerHTML = '<div style="color:var(--amber-bright);font-weight:900;">◆ ワイルズ主要キャラクター</div>';
+    Object.values(CHARACTERS).forEach(ch => {
+      const div = document.createElement('div');
+      div.className = 'card-panel';
+      div.style.padding = '7px 9px';
+      div.innerHTML = `<strong style="color:#7dd3fc;">${ch.name}</strong><div style="font-size:11px;color:var(--text-dim);">${ch.role}</div><div style="font-size:11.5px;margin-top:2px;">${ch.quote}</div>`;
+      box.appendChild(div);
+    });
+
+    const mTitle = document.createElement('div');
+    mTitle.style.cssText = 'color:var(--amber-bright);font-weight:900;margin-top:4px;';
+    mTitle.textContent = '◆ 禁足地大型モンスター';
+    box.appendChild(mTitle);
+
+    Object.values(MONSTER_TEMPLATES).forEach(mt => {
+      const div = document.createElement('div');
+      div.className = 'card-panel';
+      div.style.padding = '7px 9px';
+      div.innerHTML = `<strong style="color:#fecaca;">${mt.name}</strong> — 主力技：${mt.attackName}（HP ${mt.maxHp}）`;
+      box.appendChild(div);
+    });
+
+    document.getElementById('guide-screen').classList.add('active');
+  }
+
+  function openMenuModal() {
+    state.paused = true;
+    const list = document.getElementById('quest-select-list');
+    list.innerHTML = '';
+    QUESTS.forEach((q, idx) => {
+      const unlocked = q.id <= state.maxUnlockedQuest;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mini-btn';
+      btn.disabled = !unlocked;
+      btn.style.opacity = unlocked ? '1' : '0.45';
+      btn.style.textAlign = 'left';
+      btn.style.padding = '6px 8px';
+      btn.textContent = unlocked ? q.title : `${q.title}（🔒 未解放）`;
+      btn.onclick = () => {
+        closeAllOverlays();
+        document.getElementById('title-screen').classList.remove('active');
+        initQuestEncounter(idx, true);
+        openStoryModal('intro');
+      };
+      list.appendChild(btn);
+    });
+    document.getElementById('menu-screen').classList.add('active');
+  }
+
+  function isAnyOverlayOpen() {
+    return ['title-screen', 'story-screen', 'smithy-screen', 'save-screen', 'guide-screen', 'menu-screen'].some(id => {
+      const el = document.getElementById(id);
+      return el && el.classList.contains('active');
+    });
+  }
+
+  function closeAllOverlays() {
+    ['story-screen', 'smithy-screen', 'save-screen', 'guide-screen', 'menu-screen'].forEach(id => {
+      document.getElementById(id).classList.remove('active');
+    });
+    state.pendingDelSlot = null;
+    state.pendingPurgeAll = false;
+    if (!document.getElementById('title-screen').classList.contains('active')) {
+      state.paused = false;
+    }
+  }
+
+  function syncSoundButtonTexts() {
+    const label = audio.enabled ? '🔊 サウンド: ON' : '🔇 サウンド: OFF';
+    document.getElementById('btn-title-sound').innerHTML = `${label} <span class="kbadge">M</span>`;
+    document.getElementById('btn-menu-sound').textContent = `${label} [M]`;
+  }
+
+  /* =========================================================
+     8. BUTTON & KEYBOARD WIRING
+     ========================================================= */
+  document.querySelectorAll('.pad-btn[data-dir]').forEach(btn => {
+    const dir = btn.dataset.dir;
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      heldDirs.add(dir);
+      btn.classList.add('active-press');
+    });
+    const release = () => {
+      heldDirs.delete(dir);
+      btn.classList.remove('active-press');
+    };
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointerleave', release);
+    btn.addEventListener('pointercancel', release);
+  });
+
+  document.getElementById('hud-focus-pill').onclick = () => {
+    state.focusMode = !state.focusMode;
+    audio.dodge();
+    updateHud();
+  };
+
+  document.getElementById('btn-atk').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    performWeaponAttack();
+  });
+
+  document.getElementById('btn-focus-atk').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    performFocusStrike();
+  });
+
+  document.getElementById('btn-dodge').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    performDodgeOrSeikret();
+  });
+
+  document.getElementById('btn-aid').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    performHealAndSharpen();
+  });
+
+  document.getElementById('btn-swap-wpn').onclick = swapEquippedWeapon;
+  document.getElementById('btn-smithy').onclick = openSmithyModal;
+  document.getElementById('btn-save').onclick = () => openSaveModal('save');
+  document.getElementById('btn-load').onclick = () => openSaveModal('load');
+  document.getElementById('btn-menu').onclick = openMenuModal;
+
+  document.getElementById('btn-start-campaign').onclick = () => {
+    audio.unlock();
+    audio.forge();
+    state.maxUnlockedQuest = 1;
+    state.weaponLv = 1;
+    state.armorLv = 1;
+    state.materials = { chataHide: 0, reyShell: 0, uthVeil: 0, arkScale: 0 };
+    document.getElementById('title-screen').classList.remove('active');
+    initQuestEncounter(0, false);
+    openStoryModal('intro');
+  };
+
+  document.getElementById('btn-title-load').onclick = () => {
+    audio.unlock();
+    openSaveModal('load');
+  };
+
+  document.getElementById('btn-title-guide').onclick = () => {
+    audio.unlock();
+    openGuideModal();
+  };
+
+  document.getElementById('btn-title-sound').onclick = () => {
+    audio.toggle();
+    syncSoundButtonTexts();
+  };
+
+  document.getElementById('btn-title-del').onclick = () => {
+    audio.unlock();
+    openSaveModal('load');
+    deleteAllSaves();
+  };
+
+  document.getElementById('btn-story-next').onclick = () => {
+    if (state.storyIndex < state.storyQueue.length - 1) {
+      state.storyIndex++;
+      renderStoryStep();
+    } else {
+      finishStoryModal();
+    }
+  };
+
+  document.getElementById('btn-story-skip').onclick = finishStoryModal;
+  document.getElementById('btn-close-smithy').onclick = closeAllOverlays;
+  document.getElementById('btn-close-save').onclick = closeAllOverlays;
+  document.getElementById('btn-purge-all-saves').onclick = deleteAllSaves;
+  document.getElementById('btn-close-guide').onclick = closeAllOverlays;
+  document.getElementById('btn-close-menu').onclick = closeAllOverlays;
+
+  document.getElementById('btn-menu-sound').onclick = () => {
+    audio.toggle();
+    syncSoundButtonTexts();
+  };
+
+  document.getElementById('btn-menu-retry').onclick = () => {
+    closeAllOverlays();
+    initQuestEncounter(state.questIdx, false);
+    showToast('このクエストを初期状態からやり直します！');
+  };
+
+  document.getElementById('btn-menu-title').onclick = () => {
+    closeAllOverlays();
+    state.paused = true;
+    document.getElementById('title-screen').classList.add('active');
+  };
+
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+
+    if (k === 'm') {
+      audio.toggle();
+      syncSoundButtonTexts();
+      return;
+    }
+
+    if (k === 'escape') {
+      if (['story-screen', 'smithy-screen', 'save-screen', 'guide-screen', 'menu-screen'].some(id => document.getElementById(id).classList.contains('active'))) {
+        closeAllOverlays();
+      } else if (!document.getElementById('title-screen').classList.contains('active')) {
+        openMenuModal();
+      }
+      return;
+    }
+
+    if (document.getElementById('title-screen').classList.contains('active')) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('btn-start-campaign').click();
+      } else if (k === 'o') {
+        openSaveModal('load');
+      }
+      return;
+    }
+
+    if (document.getElementById('story-screen').classList.contains('active')) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('btn-story-next').click();
+      }
+      return;
+    }
+
+    if (isAnyOverlayOpen()) return;
+
+    heldKeys.add(e.key);
+    heldKeys.add(k);
+
+    if (k === 'z' || k === 'j') {
+      e.preventDefault();
+      performWeaponAttack();
+    } else if (k === 'x' || k === 'k') {
+      e.preventDefault();
+      performFocusStrike();
+    } else if (k === 'c' || e.key === ' ') {
+      e.preventDefault();
+      performDodgeOrSeikret();
+    } else if (k === 'r') {
+      e.preventDefault();
+      performHealAndSharpen();
+    } else if (k === 'q' || e.key === 'Tab') {
+      e.preventDefault();
+      swapEquippedWeapon();
+    } else if (k === 'f') {
+      state.focusMode = !state.focusMode;
+      updateHud();
+    } else if (k === 'g') {
+      openSmithyModal();
+    } else if (k === 'o') {
+      openSaveModal('load');
+    } else if (k === 'h') {
+      openGuideModal();
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    heldKeys.delete(e.key);
+    heldKeys.delete(e.key.toLowerCase());
+  });
+
+  // Boot initial quest & start render loop
+  initQuestEncounter(0, false);
+  state.paused = true;
+  requestAnimationFrame(mainLoop);
+})();
+</script>
+</body>
+</html>
